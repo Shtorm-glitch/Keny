@@ -1,0 +1,7 @@
+<resources>
+    <string name="vk_captcha_channel">VK 验证</string>
+    <string name="vk_captcha_title">VK 需要验证</string>
+    <string name="vk_captcha_body">请完成人机验证以继续连接</string>
+    <string name="vk_captcha_open">打开人机验证</string>
+    <string name="vk_captcha_open_error">人机验证已过期或无法打开。请检查默认浏览器和 VPN 日志。</string>
+</resources>

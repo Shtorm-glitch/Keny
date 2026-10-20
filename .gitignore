@@ -1,0 +1,13 @@
+.local/
+.gradle/
+.kotlin/
+.idea/
+**/build/
+**/app/libs/
+**/local.properties
+*.aar
+*.apk
+*.keystore
+*.jks
+*.ppk
+*.hprof

@@ -1,0 +1,7 @@
+<resources>
+    <string name="vk_captcha_channel">تأیید VK</string>
+    <string name="vk_captcha_title">VK به تأیید نیاز دارد</string>
+    <string name="vk_captcha_body">برای ادامه اتصال، کپچا را تکمیل کنید</string>
+    <string name="vk_captcha_open">باز کردن کپچا</string>
+    <string name="vk_captcha_open_error">کپچا منقضی شده یا باز نشد. مرورگر پیش‌فرض و گزارش VPN را بررسی کنید.</string>
+</resources>

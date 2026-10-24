@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -52,6 +53,11 @@ fun DashboardScreen(
     OverrideTopBar {
         TopAppBar(
             title = { Text(stringResource(R.string.title_dashboard)) },
+            navigationIcon = {
+                IconButton(onClick = { viewModel.sendGlobalEvent(UiEvent.OpenInterfaceSettings) }) {
+                    Icon(Icons.Default.Settings, contentDescription = "Режим интерфейса")
+                }
+            },
             actions = {
                 IconButton(onClick = { viewModel.toggleCardSettingsDialog() }) {
                     Icon(
@@ -61,11 +67,6 @@ fun DashboardScreen(
                 }
             },
         )
-    }
-
-    // Update service status in ViewModel
-    LaunchedEffect(serviceStatus) {
-        viewModel.updateServiceStatus(serviceStatus)
     }
 
     // Events are now handled globally in ComposeActivity via GlobalEventBus

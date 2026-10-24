@@ -1,8 +1,10 @@
 # Keny
 
-**Keny 1.0** — самостоятельный неофициальный Android-клиент и Linux/OpenWrt-бинарник на базе sing-box-extended.
+**Keny 1.0.2** — самостоятельный неофициальный Android-клиент и Linux/OpenWrt-бинарник на базе sing-box-extended.
 
-[Скачать](https://github.com/Shtorm-glitch/Keny/releases/tag/v1.0.0) · [Описание релиза](RELEASE_NOTES.md) · [Сборка](BUILDING.md) · [Лицензии и происхождение](NOTICE.md)
+[Скачать](https://github.com/Shtorm-glitch/Keny/releases/tag/v1.0.2) · [Описание релиза](RELEASE_NOTES.md) · [Сборка](BUILDING.md) · [Лицензии и происхождение](NOTICE.md)
+
+В 1.0.2 обновляется Android ARM64. Linux/OpenWrt доступны в [релизе 1.0](https://github.com/Shtorm-glitch/Keny/releases/tag/v1.0.0).
 
 ## Файлы
 
@@ -15,7 +17,7 @@
 | `SFA-version-metadata.json` | Метаданные обновлятора Android |
 | `SHA256SUMS` | Контрольные суммы |
 
-Android: application ID `keny.sfa`, версия `1.0.0`, versionCode `1`, отображаемое имя Keny. Core: `1.14.1-extended-2.7.2-keny.3`, база extended `55faa763f986f4ca8a492d9b2719bc6330d2bef5`.
+Android: application ID `keny.sfa`, версия `1.0.2`, versionCode `3`, отображаемое имя Keny. Core: `1.14.1-extended-2.7.2-keny.4`, база extended `55faa763f986f4ca8a492d9b2719bc6330d2bef5`.
 
 ## Возможности
 

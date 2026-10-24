@@ -17,6 +17,8 @@ sealed class UiEvent {
 
     object RequestStartService : UiEvent()
 
+    object OpenInterfaceSettings : UiEvent()
+
     object RequestReconnectService : UiEvent()
 
     object RestartToTakeEffect : UiEvent()

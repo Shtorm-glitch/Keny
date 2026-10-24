@@ -9,6 +9,27 @@ object UpdateState {
     val hasUpdate = mutableStateOf(false)
     val updateInfo = mutableStateOf<UpdateInfo?>(null)
     val isChecking = mutableStateOf(false)
+    enum class CheckResult { Unknown, Current, Available, Unavailable }
+    val checkResult = mutableStateOf(CheckResult.Unknown)
+
+    suspend fun checkNow() {
+        if (isChecking.value) return
+        isChecking.value = true
+        try {
+            val info = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                io.nekohasekai.sfa.vendor.Vendor.checkUpdateAsync()
+            }
+            setUpdate(info)
+            checkResult.value = if (info == null) CheckResult.Current else CheckResult.Available
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            // Keep a previously discovered update and cached APK on network failure.
+            checkResult.value = CheckResult.Unavailable
+        } finally {
+            isChecking.value = false
+        }
+    }
 
     val isDownloading = mutableStateOf(false)
     val downloadProgress = mutableStateOf<Float?>(null)
@@ -32,6 +53,7 @@ object UpdateState {
         }
         updateInfo.value = info
         hasUpdate.value = info != null
+        checkResult.value = if (info == null) CheckResult.Current else CheckResult.Available
         saveToCache(info)
     }
 

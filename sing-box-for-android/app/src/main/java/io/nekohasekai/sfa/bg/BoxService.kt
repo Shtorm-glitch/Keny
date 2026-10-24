@@ -37,6 +37,9 @@ import io.nekohasekai.sfa.database.Settings
 import io.nekohasekai.sfa.ktx.hasPermission
 import io.nekohasekai.sfa.vendor.Vendor
 import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -78,6 +81,7 @@ class BoxService(private val service: Service, private val platformInterface: Pl
     private lateinit var commandServer: CommandServer
 
     private var receiverRegistered = false
+    private var startupJob: Job? = null
     private val receiver =
         object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
@@ -151,6 +155,8 @@ class BoxService(private val service: Service, private val platformInterface: Pl
                         }
                     },
                 )
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 stopAndAlert(Alert.CreateService, e.message)
                 return
@@ -174,6 +180,8 @@ class BoxService(private val service: Service, private val platformInterface: Pl
                 notification.show(lastProfileName, R.string.status_started)
             }
             notification.start()
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             stopAndAlert(Alert.StartService, e.message)
             return
@@ -274,7 +282,7 @@ class BoxService(private val service: Service, private val platformInterface: Pl
 
     @OptIn(DelicateCoroutinesApi::class)
     private fun stopService() {
-        if (status.value != Status.Started) return
+        if (status.value != Status.Started && status.value != Status.Starting) return
         status.value = Status.Stopping
         if (receiverRegistered) {
             service.unregisterReceiver(receiver)
@@ -282,6 +290,8 @@ class BoxService(private val service: Service, private val platformInterface: Pl
         }
         notification.close()
         GlobalScope.launch(Dispatchers.IO) {
+            startupJob?.cancelAndJoin()
+            startupJob = null
             val pfd = fileDescriptor
             if (pfd != null) {
                 pfd.close()
@@ -289,7 +299,7 @@ class BoxService(private val service: Service, private val platformInterface: Pl
             }
             DefaultNetworkMonitor.stop()
             closeService()
-            commandServer.apply {
+            if (::commandServer.isInitialized) commandServer.apply {
                 close()
 //                Seq.destroyRef(refnum)
             }
@@ -304,6 +314,7 @@ class BoxService(private val service: Service, private val platformInterface: Pl
     private fun closeService() {
         VkCaptchaAccess.clear()
         Application.notification.cancel(VkCaptchaLink.NOTIFICATION_ID)
+        if (!::commandServer.isInitialized) return
         runCatching {
             commandServer.closeService()
         }.onFailure {
@@ -358,7 +369,7 @@ class BoxService(private val service: Service, private val platformInterface: Pl
             receiverRegistered = true
         }
 
-        GlobalScope.launch(Dispatchers.IO) {
+        startupJob = GlobalScope.launch(Dispatchers.IO) {
             Settings.startedByUser = true
             try {
                 startCommandServer()

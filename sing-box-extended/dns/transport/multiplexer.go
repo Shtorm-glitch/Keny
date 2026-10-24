@@ -128,7 +128,10 @@ func (m *queryMultiplexer) Exchange(ctx context.Context, message *mDNS.Msg) (*mD
 }
 
 func (m *queryMultiplexer) ExchangeAsync(ctx context.Context, message *mDNS.Msg, callback func(response *mDNS.Msg, err error)) {
-	m.dispatch(ctx, message, callback, true)
+	// Connection acquisition and request writes may block. In particular, TUN
+	// dispatchers invoke this method inline and must keep processing packets
+	// while a DNS connection is waiting for its detour to recover.
+	go m.dispatch(ctx, message, callback, true)
 }
 
 func (m *queryMultiplexer) dispatch(ctx context.Context, message *mDNS.Msg, callback func(response *mDNS.Msg, err error), retryReadError bool) {

@@ -14,6 +14,12 @@ import io.nekohasekai.sfa.database.ProfileManager
 import io.nekohasekai.sfa.database.Settings
 import io.nekohasekai.sfa.database.TypedProfile
 import io.nekohasekai.sfa.utils.HTTPClient
+import android.util.AtomicFile
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.Date
 import java.util.concurrent.TimeUnit
@@ -22,6 +28,59 @@ class UpdateProfileWork {
     companion object {
         private const val WORK_NAME = "UpdateProfile"
         private const val TAG = "UpdateProfileWork"
+        private val updateMutex = Mutex()
+
+        suspend fun updateOnOpen() {
+            val ids = Settings.simpleRemoteProfiles
+            if (ids.isNotEmpty()) updateProfiles(ids, onlyForced = true)
+        }
+
+        private suspend fun updateProfiles(forced: Set<String> = emptySet(), onlyForced: Boolean = false): Boolean =
+            withContext(Dispatchers.IO) {
+                updateMutex.withLock {
+                    var success = true
+                    var updatedSelected: Long? = null
+                    for (profile in ProfileManager.list()) {
+                        if (profile.typed.type != TypedProfile.Type.Remote || !profile.typed.autoUpdate) continue
+                        val force = profile.id.toString() in forced
+                        if (onlyForced && !force) continue
+                        val age = System.currentTimeMillis() - profile.typed.lastUpdated.time
+                        if (!force && age < profile.typed.autoUpdateInterval * 60_000L) continue
+                        try {
+                            val content = HTTPClient().use { it.getString(profile.typed.remoteURL) }
+                            Libbox.checkConfig(content)
+                            val fresh = ProfileManager.get(profile.id) ?: continue
+                            // Discard a result whose URL was edited in Pro while downloading.
+                            if (fresh.typed.remoteURL != profile.typed.remoteURL) continue
+                            val file = File(fresh.typed.path)
+                            if (!file.exists() || file.readText() != content) {
+                                val atomic = AtomicFile(file)
+                                val stream = atomic.startWrite()
+                                try {
+                                    stream.write(content.toByteArray(Charsets.UTF_8))
+                                    atomic.finishWrite(stream)
+                                } catch (e: Exception) {
+                                    atomic.failWrite(stream)
+                                    throw e
+                                }
+                                if (fresh.id == Settings.selectedProfile) updatedSelected = fresh.id
+                            }
+                            fresh.typed.lastUpdated = Date()
+                            ProfileManager.update(fresh)
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (_: Exception) {
+                            // URLs, profile names and config errors can contain private data.
+                            Log.w(TAG, "Remote profile update failed; retaining saved config")
+                            success = false
+                        }
+                    }
+                    if (updatedSelected != null && updatedSelected == Settings.selectedProfile && Settings.startedByUser) {
+                        runCatching { Libbox.newStandaloneCommandClient().serviceReload() }
+                    }
+                    success
+                }
+            }
 
         suspend fun reconfigureUpdater() {
             runCatching {
@@ -61,42 +120,7 @@ class UpdateProfileWork {
 
     class UpdateTask(appContext: Context, params: WorkerParameters) : CoroutineWorker(appContext, params) {
         override suspend fun doWork(): Result {
-            var selectedProfileUpdated = false
-            val remoteProfiles =
-                ProfileManager.list()
-                    .filter { it.typed.type == TypedProfile.Type.Remote && it.typed.autoUpdate }
-            if (remoteProfiles.isEmpty()) return Result.success()
-            var success = true
-            val selectedProfile = Settings.selectedProfile
-            for (profile in remoteProfiles) {
-                val lastSeconds =
-                    (System.currentTimeMillis() - profile.typed.lastUpdated.time) / 1000L
-                if (lastSeconds < profile.typed.autoUpdateInterval * 60) {
-                    continue
-                }
-                try {
-                    val content = HTTPClient().use { it.getString(profile.typed.remoteURL) }
-                    Libbox.checkConfig(content)
-                    val file = File(profile.typed.path)
-                    if (file.readText() != content) {
-                        File(profile.typed.path).writeText(content)
-                        if (profile.id == selectedProfile) {
-                            selectedProfileUpdated = true
-                        }
-                    }
-                    profile.typed.lastUpdated = Date()
-                    ProfileManager.update(profile)
-                } catch (e: Exception) {
-                    Log.e(TAG, "update profile ${profile.name}", e)
-                    success = false
-                }
-            }
-            if (selectedProfileUpdated) {
-                runCatching {
-                    Libbox.newStandaloneCommandClient().serviceReload()
-                }
-            }
-            return if (success) {
+            return if (updateProfiles()) {
                 Result.success()
             } else {
                 Result.retry()

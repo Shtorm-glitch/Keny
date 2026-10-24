@@ -50,6 +50,9 @@ class Application : Application() {
             initialize()
             UpdateProfileWork.reconfigureUpdater()
             HookModuleUpdateNotifier.sync(this@Application)
+            AppLifecycleObserver.isForeground.collect { foreground ->
+                if (foreground) UpdateProfileWork.updateOnOpen()
+            }
         }
 
         if (Vendor.isPerAppProxyAvailable()) {

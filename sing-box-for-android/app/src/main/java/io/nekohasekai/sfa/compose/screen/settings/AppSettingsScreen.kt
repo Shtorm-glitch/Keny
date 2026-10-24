@@ -1209,7 +1209,7 @@ fun AppSettingsScreen(navController: NavController) {
                                         showErrorDialog = resources.getString(R.string.update_track_not_supported)
                                     } catch (e: Exception) {
                                         Log.e("AppSettingsScreen", "checkUpdateAsync failed", e)
-                                        UpdateState.setUpdate(null)
+                                        UpdateState.checkResult.value = UpdateState.CheckResult.Unavailable
                                         showErrorDialog = e.message
                                     }
                                 }

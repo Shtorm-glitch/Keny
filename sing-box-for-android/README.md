@@ -1,7 +1,27 @@
-# Keny for Android
+# Keny
 
-Android application for Keny 1.0, derived from [SagerNet/sing-box-for-android](https://github.com/SagerNet/sing-box-for-android). Application ID: `keny.sfa`; version: `1.0.0`, versionCode `1`.
+Unofficial Android client with OLCRTC carrier rotation, based on SFA.
 
-See the [repository README](../README.md), [release notes](../RELEASE_NOTES.md), [build instructions](../BUILDING.md), and [source notice](../NOTICE.md). The matching core source is included in the sibling `sing-box-extended` directory.
+This is not an official SagerNet, sing-box, sing-box-extended, OLCRTC, or LiveKit release. The application is published under the separate name **Keny** to avoid implying association with the upstream SFA application.
 
-Keny is an unofficial derivative. Copyright 2022 nekohasekai and contributors; preserve [LICENSE](LICENSE) and its additional naming and association condition. Keny does not imply upstream affiliation or endorsement.
+## Project relationship
+
+- [SagerNet/sing-box-for-android](https://github.com/SagerNet/sing-box-for-android) is the original Android application and direct UI base.
+- [SagerNet/sing-box](https://github.com/SagerNet/sing-box) is the original sing-box project.
+- [shtorm-7/sing-box-extended](https://github.com/shtorm-7/sing-box-extended) is the extended sing-box fork used as the direct core base.
+- [Shtorm-glitch/sing-box-extended](https://github.com/Shtorm-glitch/sing-box-extended), tag `v1.13.11-extended-2.1.0-olcrtc.1`, contains the OLCRTC endpoint, outbound, and autonomous rotation logic packaged by this app.
+- [openlibrecommunity/olcrtc](https://github.com/openlibrecommunity/olcrtc) is the original OLCRTC project.
+- [Shtorm-glitch/olcrtc](https://github.com/Shtorm-glitch/olcrtc), tag `v0.0.1-olcrtc.1`, contains the OLCRTC carrier extensions used by the core.
+- [Shtorm-glitch/server-sdk-go](https://github.com/Shtorm-glitch/server-sdk-go), tag `v2.16.4-olcrtc.1`, contains the minimal LiveKit SDK additions required by rotation.
+
+See [OLCRTC release documentation](docs/OLCRTC_RELEASE.md) for architecture, configuration safety, build instructions, verification, and known limitations.
+
+## Current development status
+
+The Linux server development branch now uses a randomized 2 to 30 second drain timeout by default. On autonomous cold start, an explicit failure in the first room starts an immediate probe of the second room. A successfully joined first room remains temporarily active while owner presence is observed for 10 seconds; if no owner appears, the existing owner-loss path probes the next room after its 5-second grace period. This cold-start change is not included in the published `v1.13.14-olcrtc.2` Android APK and will be included in a later release after Linux validation.
+
+## License and attribution
+
+The Android application remains licensed under GPLv3 with the additional upstream naming and association condition in [LICENSE](LICENSE). See [NOTICE.md](NOTICE.md) for source lineage and attribution.
+
+Copyright for upstream components remains with their respective authors and contributors.

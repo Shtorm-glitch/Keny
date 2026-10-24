@@ -111,6 +111,12 @@ import io.nekohasekai.sfa.compose.screen.dashboard.DashboardViewModel
 import io.nekohasekai.sfa.compose.screen.dashboard.GroupsCard
 import io.nekohasekai.sfa.compose.screen.dashboard.groups.GroupsViewModel
 import io.nekohasekai.sfa.compose.screen.log.LogViewModel
+import io.nekohasekai.sfa.compose.screen.simple.SimpleScreen
+import io.nekohasekai.sfa.compose.screen.simple.InterfaceSettingsSheet
+import io.nekohasekai.sfa.compose.screen.simple.CallTransportSignal
+import io.nekohasekai.sfa.utils.CommandClient
+import io.nekohasekai.sfa.utils.AppLifecycleObserver
+import io.nekohasekai.libbox.LogEntry
 import io.nekohasekai.sfa.compose.theme.SFATheme
 import io.nekohasekai.sfa.compose.topbar.LocalTopBarController
 import io.nekohasekai.sfa.compose.topbar.TopBarController
@@ -135,6 +141,9 @@ class MainActivity :
     private val connection = ServiceConnection(this, this)
     private lateinit var dashboardViewModel: DashboardViewModel
     private var currentServiceStatus by mutableStateOf(Status.Stopped)
+    private var simpleMode by mutableStateOf(Settings.simpleMode)
+    private var simpleFailureEvent by mutableStateOf(0L)
+    private var transportRecovering by mutableStateOf(false)
     private var currentAlert by mutableStateOf<Pair<Alert, String?>?>(null)
     private var showLocationPermissionDialog by mutableStateOf(false)
     private var showBackgroundLocationDialog by mutableStateOf(false)
@@ -195,15 +204,8 @@ class MainActivity :
         connection.reconnect()
 
         UpdateState.loadFromCache()
-        if (Settings.checkUpdateEnabled) {
-            lifecycleScope.launch(Dispatchers.IO) {
-                try {
-                    val updateInfo = Vendor.checkUpdateAsync()
-                    UpdateState.setUpdate(updateInfo)
-                } catch (_: Exception) {
-                    UpdateState.setUpdate(null)
-                }
-            }
+        if (Settings.checkUpdateEnabled || simpleMode) {
+            lifecycleScope.launch { UpdateState.checkNow() }
         }
 
         handleIntent(intent)
@@ -319,6 +321,7 @@ class MainActivity :
         val currentDestination = navBackStackEntry?.destination
         val currentRoute = currentDestination?.route
         val scope = rememberCoroutineScope()
+        var showInterfaceSettings by remember { mutableStateOf(false) }
         val importHandler = remember { ProfileImportHandler(this@MainActivity) }
 
         val windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass
@@ -498,14 +501,7 @@ class MainActivity :
                         Settings.updateCheckPrompted = true
                         Settings.checkUpdateEnabled = true
                         showUpdateCheckPrompt = false
-                        scope.launch(Dispatchers.IO) {
-                            try {
-                                val result = Vendor.checkUpdateAsync()
-                                UpdateState.setUpdate(result)
-                            } catch (_: Exception) {
-                                UpdateState.setUpdate(null)
-                            }
-                        }
+                        scope.launch { UpdateState.checkNow() }
                     }) {
                         Text(stringResource(R.string.ok))
                     }
@@ -614,6 +610,9 @@ class MainActivity :
             this.dashboardViewModel = dashboardViewModel
         }
         val dashboardUiState by dashboardViewModel.uiState.collectAsState()
+        LaunchedEffect(currentServiceStatus) {
+            dashboardViewModel.updateServiceStatus(currentServiceStatus)
+        }
 
         val isSettingsSubScreen = currentRoute?.startsWith("settings/") == true
         val isConnectionsDetail = currentRoute?.startsWith("connections/detail") == true
@@ -726,7 +725,12 @@ class MainActivity :
                     }
 
                     is UiEvent.RequestStartService -> {
+                        simpleFailureEvent = 0L
                         startService()
+                    }
+
+                    is UiEvent.OpenInterfaceSettings -> {
+                        showInterfaceSettings = true
                     }
 
                     is UiEvent.RequestReconnectService -> {
@@ -920,7 +924,20 @@ class MainActivity :
         }
 
         CompositionLocalProvider(LocalTopBarController provides topBarController) {
-            if (useNavigationRail) {
+            if (simpleMode) {
+                SimpleScreen(
+                    serviceStatus = currentServiceStatus,
+                    failureEvent = simpleFailureEvent,
+                    recovering = transportRecovering,
+                    onToggle = {
+                        simpleFailureEvent = 0L
+                        transportRecovering = false
+                        dashboardViewModel.toggleService()
+                    },
+                    onOpenSettings = { showInterfaceSettings = true },
+                    dashboard = dashboardViewModel,
+                )
+            } else if (useNavigationRail) {
                 Row(modifier = Modifier.fillMaxSize()) {
                     Surface(tonalElevation = 1.dp) {
                         NavigationRail(
@@ -1013,8 +1030,71 @@ class MainActivity :
             }
         }
 
+        if (showInterfaceSettings) {
+            InterfaceSettingsSheet(
+                simple = simpleMode,
+                onModeChange = {
+                    Settings.simpleMode = it
+                    simpleMode = it
+                    if (it && UpdateState.checkResult.value == UpdateState.CheckResult.Unknown) {
+                        scope.launch { UpdateState.checkNow() }
+                    }
+                    showGroupsSheet = false
+                    showConnectionsSheet = false
+                    showInterfaceSettings = false
+                    navController.navigate(Screen.Dashboard.route) {
+                        popUpTo(navController.graph.findStartDestination().id)
+                        launchSingleTop = true
+                    }
+                },
+                onDownload = {
+                    updateInfo?.let { info ->
+                        showInterfaceSettings = false
+                        showDownloadDialog = true
+                        downloadError = null
+                        downloadJob = scope.launch {
+                            try {
+                                withContext(Dispatchers.IO) { Vendor.downloadAndInstall(this@MainActivity, info.downloadUrl) }
+                                showDownloadDialog = false
+                            } catch (e: kotlinx.coroutines.CancellationException) {
+                                throw e
+                            } catch (_: Exception) {
+                                downloadError = "Не удалось загрузить обновление. Попробуйте снова."
+                            }
+                        }
+                    }
+                },
+                onDismiss = { showInterfaceSettings = false },
+            )
+        }
+
+        // Observe explicit Call lifecycle events without probing user traffic.
+        val foreground by AppLifecycleObserver.isForeground.collectAsState()
+        DisposableEffect(simpleMode, currentServiceStatus, foreground) {
+            val monitor = if (simpleMode && currentServiceStatus == Status.Started && foreground) {
+                CommandClient(scope, CommandClient.ConnectionType.Log, object : CommandClient.Handler {
+                    override fun appendLogs(message: List<LogEntry>) {
+                        val signal = message.mapNotNull { CallTransportSignal.fromLog(it.message) }.lastOrNull() ?: return
+                        scope.launch {
+                            if (!simpleMode || currentServiceStatus != Status.Started) return@launch
+                            when (signal) {
+                                CallTransportSignal.Connected -> transportRecovering = false
+                                CallTransportSignal.Recovering -> transportRecovering = true
+                                CallTransportSignal.Failed -> {
+                                    transportRecovering = false
+                                    simpleFailureEvent = android.os.SystemClock.elapsedRealtime()
+                                    io.nekohasekai.sfa.bg.BoxService.stop()
+                                }
+                            }
+                        }
+                    }
+                }).also { it.connect() }
+            } else null
+            onDispose { monitor?.disconnect() }
+        }
+
         // Groups ModalBottomSheet
-        if (showGroupsSheet && !useNavigationRail) {
+        if (showGroupsSheet && !useNavigationRail && !simpleMode) {
             val groupsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
             val groupsViewModel: GroupsViewModel = viewModel(
                 factory = object : ViewModelProvider.Factory {
@@ -1084,7 +1164,7 @@ class MainActivity :
         }
 
         // Connections ModalBottomSheet
-        if (showConnectionsSheet && !useNavigationRail) {
+        if (showConnectionsSheet && !useNavigationRail && !simpleMode) {
             val connectionsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
             val connectionsViewModel: ConnectionsViewModel = viewModel()
             val connectionsUiState by connectionsViewModel.uiState.collectAsState()
@@ -1152,6 +1232,7 @@ class MainActivity :
 
     override fun onServiceStatusChanged(status: Status) {
         currentServiceStatus = status
+        if (status != Status.Started) transportRecovering = false
         // Update service status in ViewModels
         if (::dashboardViewModel.isInitialized) {
             dashboardViewModel.updateServiceStatus(status)
@@ -1163,6 +1244,10 @@ class MainActivity :
     }
 
     override fun onServiceAlert(type: Alert, message: String?) {
+        if (simpleMode && type in setOf(Alert.StartCommandServer, Alert.CreateService, Alert.StartService, Alert.EmptyConfiguration)) {
+            simpleFailureEvent = android.os.SystemClock.elapsedRealtime()
+            return
+        }
         when (type) {
             Alert.RequestLocationPermission -> {
                 return requestLocationPermission()

@@ -38,6 +38,8 @@ object Settings {
     }
     val dataStore = RoomPreferenceDataStore(instance.keyValuePairDao())
     var selectedProfile by dataStore.long(SettingsKey.SELECTED_PROFILE) { -1L }
+    var simpleMode by dataStore.boolean("keny_simple_mode") { true }
+    var simpleRemoteProfiles by dataStore.stringSet("keny_simple_remote_profiles") { emptySet() }
     var serviceMode by dataStore.string(SettingsKey.SERVICE_MODE) { ServiceMode.NORMAL }
     var startedByUser by dataStore.boolean(SettingsKey.STARTED_BY_USER)
 

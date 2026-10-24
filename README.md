@@ -4,7 +4,7 @@
 
 [Скачать](https://github.com/Shtorm-glitch/Keny/releases/tag/v1.0.2) · [Описание релиза](RELEASE_NOTES.md) · [Сборка](BUILDING.md) · [Лицензии и происхождение](NOTICE.md)
 
-В 1.0.2 обновляется Android ARM64. Linux/OpenWrt доступны в [релизе 1.0](https://github.com/Shtorm-glitch/Keny/releases/tag/v1.0.0).
+В 1.0.2 доступны Android ARM64, Linux x86-64/ARM64 и OpenWrt ARM64 с исправлением DNS/TUN.
 
 ## Файлы
 

@@ -12,8 +12,7 @@
 | --- | --- |
 | `keny.android-arm64-v8a.apk` | Android 7.0+, ARM64 |
 | `keny.linux-amd64` | Linux x86-64 |
-| `keny.linux-arm64` | Linux ARM64 |
-| `keny.owrt-arm64` | OpenWrt ARM64, самостоятельный исполняемый файл |
+| `keny.linux-arm64` | Linux и OpenWrt ARM64, самостоятельный статический бинарник |
 | `SFA-version-metadata.json` | Метаданные обновлятора Android |
 | `SHA256SUMS` | Контрольные суммы |
 

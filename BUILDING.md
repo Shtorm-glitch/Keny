@@ -16,7 +16,7 @@ CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -buildvcs=false -trimpath \
 
 The transport build tag is `with_call`, not `with_olcrtc`.
 
-For Linux ARM64, use `GOARCH=arm64` and output `keny.linux-arm64`. The OpenWrt artifact `keny.owrt-arm64` is the same standalone CGO-disabled Linux ARM64 target, built with these tags; it is not an ipk/apk package.
+For Linux and OpenWrt ARM64, use `GOARCH=arm64` and output `keny.linux-arm64`. This shared standalone CGO-disabled binary is built with these tags; it is not an ipk/apk package.
 
 ## Android ARM64
 

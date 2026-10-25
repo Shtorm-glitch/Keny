@@ -1,0 +1,87 @@
+name: Publish checked Naive Linux assets to 1.0.2
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Successful Build Linux with Naive run ID
+        required: true
+permissions:
+  actions: read
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Require successful checked build from this repository
+        id: source
+        env:
+          RUN_ID: ${{ inputs.run_id }}
+        run: |
+          set -euo pipefail
+          [[ "$RUN_ID" =~ ^[0-9]+$ ]]
+          gh api "repos/$GH_REPO/actions/runs/$RUN_ID" > run.json
+          python3 - <<'PY'
+          import json, os
+          r = json.load(open('run.json'))
+          assert r['status'] == 'completed' and r['conclusion'] == 'success'
+          assert r['path'] == '.github/workflows/naive-linux.yml'
+          assert r['head_repository']['full_name'] == os.environ['GH_REPO']
+          assert r['head_branch'] == 'main'
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write('sha=' + r['head_sha'] + '\n')
+          PY
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.source.outputs.sha }}
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.run_id }}
+          pattern: keny-naive-linux-*
+          merge-multiple: true
+          path: dist
+      - name: Prepare checksums and release description
+        env:
+          SOURCE_SHA: ${{ steps.source.outputs.sha }}
+        run: |
+          set -euo pipefail
+          gh release view v1.0.2 --json assets,body > release-before.json
+          python3 - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          r = json.load(open('release-before.json'))
+          hashes = {a['name']: a['digest'].removeprefix('sha256:') for a in r['assets'] if a['name'] != 'SHA256SUMS'}
+          assert hashes['keny.android-arm64-v8a.apk'] == '47c77f35640f564e4361f26961791e5b3a1812540087cdf3f524296f0e8eea4d'
+          assert hashes['SFA-version-metadata.json'] == 'd6936c08c7f6fdb952adb39b66b2c47fa9a3473b03731f1b384ec9d68d7c1452'
+          for arch in ['amd64', 'arm64']:
+              p = Path('dist/keny.linux-' + arch)
+              data = p.read_bytes()
+              assert data[:4] == b'\x7fELF' and len(data) > 50_000_000
+              hashes[p.name] = hashlib.sha256(data).hexdigest()
+          Path('dist/SHA256SUMS').write_text(''.join(h + '  ' + name + '\n' for name, h in sorted(hashes.items())))
+          source = 'https://github.com/' + os.environ['GH_REPO'] + '/commit/' + os.environ['SOURCE_SHA']
+          body = Path('RELEASE_NOTES.md').read_text()
+          body += '\nПроверенная сборка Linux/Naive: ' + source + '\n'
+          body += '\nПроверки дополнения: оба бинарника статические, без внешней libcronet.so; Naive outbound с проверкой TLS и передачей 1 МиБ прошёл на x86-64 и ARM64 под QEMU. Целевые регрессионные тесты Call прошли на x86-64. Проверки не меняли пользовательские устройства.\n'
+          Path('release-body.md').write_text(body)
+          PY
+      - name: Replace only Linux assets and checksum manifest
+        run: |
+          set -euo pipefail
+          gh release upload v1.0.2 dist/keny.linux-amd64 dist/keny.linux-arm64 dist/SHA256SUMS --clobber
+          gh release edit v1.0.2 --notes-file release-body.md
+          gh release view v1.0.2 --json assets > release-after.json
+          python3 - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          r = json.load(open('release-after.json'))
+          digests = {a['name']: a['digest'] for a in r['assets']}
+          for p in Path('dist').iterdir():
+              assert digests[p.name] == 'sha256:' + hashlib.sha256(p.read_bytes()).hexdigest()
+          assert digests['keny.android-arm64-v8a.apk'] == 'sha256:47c77f35640f564e4361f26961791e5b3a1812540087cdf3f524296f0e8eea4d'
+          assert digests['SFA-version-metadata.json'] == 'sha256:d6936c08c7f6fdb952adb39b66b2c47fa9a3473b03731f1b384ec9d68d7c1452'
+          print('Published Linux Naive binaries and verified all GitHub asset digests; Android unchanged.')
+          PY

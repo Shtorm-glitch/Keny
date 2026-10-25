@@ -21,6 +21,7 @@ Android: application ID `keny.sfa`, версия `1.0.2`, versionCode `3`, от�
 ## Возможности
 
 - Транспорт Call с Телемостом и VK; согласованный профиль WebRTC creator/joiner.
+- NaiveProxy: клиент в Android; Linux/OpenWrt-файлы релиза 1.0.2 пересобраны 25.10.2026 с Naive outbound и статически встроенным Cronet, без отдельной libcronet.so.
 - Ротация двух комнат Телемоста, независимый PSK и восстановление соединений.
 - Уведомление для ручного прохождения CAPTCHA VK.
 - Встроенное обновление Android из Releases этого репозитория с выбором APK по архитектуре.

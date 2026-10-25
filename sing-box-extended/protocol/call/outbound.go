@@ -103,10 +103,11 @@ func NewOutbound(ctx context.Context, router adapter.Router, logger log.ContextL
 	return ob, nil
 }
 
-func (o *Outbound) Start(stage adapter.StartStage) error {
+func (o *Outbound) Start(stage adapter.StartStage, scope *adapter.Scope) error {
 	if stage != adapter.StartStatePostStart {
 		return nil
 	}
+	scope.Add(o.Close)
 	go o.startHandler()
 	return nil
 }

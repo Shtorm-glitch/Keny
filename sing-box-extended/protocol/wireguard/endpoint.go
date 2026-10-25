@@ -29,6 +29,7 @@ import (
 var (
 	_ adapter.OutboundWithPreferredRoutes = (*Endpoint)(nil)
 	_ adapter.InterfaceUpdateListener     = (*Endpoint)(nil)
+	_ adapter.OutboundWithMultiplex       = (*Endpoint)(nil)
 	_ dialer.PacketDialerWithDestination  = (*Endpoint)(nil)
 )
 
@@ -103,6 +104,8 @@ func NewEndpoint(ctx context.Context, router adapter.Router, logger log.ContextL
 			RejectAfterTime:        options.Amnezia.RejectAfterTime,
 			KeepaliveTimeout:       options.Amnezia.KeepaliveTimeout,
 			MaxHandshakeAttempts:   options.Amnezia.MaxHandshakeAttempts,
+			RandomTrailers:         options.Amnezia.RandomTrailers,
+			DisableCookies:         options.Amnezia.DisableCookies,
 		}
 	}
 	networkManager := service.FromContext[adapter.NetworkManager](ctx)
@@ -164,8 +167,10 @@ func NewEndpoint(ctx context.Context, router adapter.Router, logger log.ContextL
 	return ep, nil
 }
 
-func (w *Endpoint) Start(stage adapter.StartStage) error {
+func (w *Endpoint) Start(stage adapter.StartStage, scope *adapter.Scope) error {
 	switch stage {
+	case adapter.StartStateInitialize:
+		scope.Add(w.endpoint.Close)
 	case adapter.StartStateStart:
 		return w.endpoint.Start(false)
 	case adapter.StartStatePostStart:
@@ -174,15 +179,18 @@ func (w *Endpoint) Start(stage adapter.StartStage) error {
 			return err
 		}
 		w.started.Store(true)
+		scope.Add(func() error {
+			w.bindAccess.Lock()
+			w.started.Store(false)
+			w.bindAccess.Unlock()
+			return nil
+		})
 	}
 	return nil
 }
 
-func (w *Endpoint) Close() error {
-	w.bindAccess.Lock()
-	w.started.Store(false)
-	w.bindAccess.Unlock()
-	return w.endpoint.Close()
+func (w *Endpoint) MultiplexEnabled() bool {
+	return true
 }
 
 func (w *Endpoint) InterfaceUpdated(ctx context.Context) {

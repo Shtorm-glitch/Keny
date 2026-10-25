@@ -1,10 +1,10 @@
 # Keny
 
-**Keny 1.0.2** — самостоятельный неофициальный Android-клиент и Linux/OpenWrt-бинарник на базе sing-box-extended.
+**Keny 1.0.3** — самостоятельный неофициальный Android-клиент и Linux/OpenWrt-бинарник на базе Extended с интегрированными исправлениями sing-box 1.14.4.
 
-[Скачать](https://github.com/Shtorm-glitch/Keny/releases/tag/v1.0.2) · [Описание релиза](RELEASE_NOTES.md) · [Сборка](BUILDING.md) · [Лицензии и происхождение](NOTICE.md)
+[Скачать](https://github.com/Shtorm-glitch/Keny/releases/tag/v1.0.3) · [Описание релиза](RELEASE_NOTES.md) · [Сборка](BUILDING.md) · [Лицензии и происхождение](NOTICE.md)
 
-В 1.0.2 доступны Android ARM64, Linux x86-64/ARM64 и OpenWrt ARM64 с исправлением DNS/TUN.
+В 1.0.3 доступны Android ARM64, Linux x86-64/ARM64 и OpenWrt ARM64 с Naive и сохранёнными доработками DNS/TUN, Call и интерфейса Keny.
 
 ## Файлы
 
@@ -16,7 +16,7 @@
 | `SFA-version-metadata.json` | Метаданные обновлятора Android |
 | `SHA256SUMS` | Контрольные суммы |
 
-Android: application ID `keny.sfa`, версия `1.0.2`, versionCode `3`, отображаемое имя Keny. Core: `1.14.1-extended-2.7.2-keny.4`, база extended `55faa763f986f4ca8a492d9b2719bc6330d2bef5`.
+Android: application ID `keny.sfa`, версия `1.0.3`, versionCode `4`. Core: `1.14.4-extended-2.7.3-keny.5`. Происхождение интеграции: [CORE_UPGRADE_1.0.3.md](CORE_UPGRADE_1.0.3.md).
 
 ## Возможности
 

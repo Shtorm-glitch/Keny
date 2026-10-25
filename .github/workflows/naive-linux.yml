@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.26.4'
+          go-version: '1.26.10'
           cache-dependency-path: sing-box-extended/go.sum
       - name: Install execution tools
         run: sudo apt-get update && sudo apt-get install -y qemu-user
@@ -50,7 +50,7 @@ jobs:
           set -euo pipefail
           source "$RUNNER_TEMP/cronet-env.sh"
           cd sing-box-extended
-          CGO_ENABLED=1 go test -ldflags '-linkmode external -extldflags "-static"' -tags with_call,with_quic,with_naive_outbound,with_musl ./protocol/call ./transport/call/...
+          CGO_ENABLED=1 go test -mod=readonly -ldflags '-linkmode external -extldflags "-static"' -tags with_call,with_quic,with_gvisor,with_utls,with_clash_api,with_wireguard,with_naive_outbound,with_musl ./common/interrupt ./dns/... ./protocol/call ./protocol/group ./route/... ./transport/call/... ./transport/v2raygrpclite github.com/sagernet/sing-vmess/vless github.com/sagernet/wireguard-go/device
       - uses: actions/upload-artifact@v4
         with:
           name: keny-naive-linux-${{ matrix.arch }}

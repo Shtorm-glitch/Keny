@@ -1,12 +1,16 @@
-# Keny 1.0.2
+# Keny 1.0.3
 
-Дополнение 25.10.2026: Linux x86-64 и Linux/OpenWrt ARM64 пересобраны с `with_naive_outbound,with_musl` и статически встроенным Cronet. Отдельная `libcronet.so` не требуется. Android APK, versionCode и версия ядра не меняются. Исходный тег `v1.0.2` сохранён; исходники сборки — в коммите, указанном в описании релиза. `SHA256SUMS` обновляется вместе с Linux-файлами. На установленные устройства это автоматически не применяется.
+- Интегрированы исправления sing-box **1.14.4** поверх Extended **2.7.3**, с сохранением доработок Keny.
+- Core **1.14.4-extended-2.7.3-keny.5**, Go **1.26.10**.
+- Исправления DNS, TUN/TCP-сессий, HTTP/2/gRPC, восстановления сети, Vision и WireGuard.
+- Сохранены async DNS/TUN fix, Call/VK/Телемост, ротация/PSK, CAPTCHA, простой интерфейс и обновлятор.
+- Naive/Cronet: Android и статические Linux/OpenWrt binaries, без внешней libcronet.so.
+- Android **keny.sfa**, **1.0.3 / code 4**, ARM64 release, прежняя подпись.
 
-- Исправлена блокировка TUN при установлении DNS-соединения: зависший DNS через прокси больше не задерживает весь входящий трафик, включая direct.
-- Обновлён простой интерфейс Android: состояние подключения, выбор профиля и индикаторы транспорта; добавлен значок волка.
-- Android: `keny.sfa`, версия **1.0.2**, versionCode **3**. Релизная ARM64-сборка без отладки, прежняя подпись; устанавливается поверх предыдущей версии с сохранением данных.
-- Ядро: **1.14.1-extended-2.7.2-keny.4**, прежняя база extended. Это локальное исправление DNS/TUN, без обновления базы до 1.14.4.
+Файлы: keny.android-arm64-v8a.apk, keny.linux-amd64, keny.linux-arm64, SFA-version-metadata.json, SHA256SUMS.
+ARM64 binary подходит Linux/OpenWrt ARM64, это не пакет ipk/apk.
 
-Проверки: 66 сравнительных сетевых прогонов, Go-тесты DNS/Call, 17 Android unit tests, release-сборка с R8 и vital lint. APK установлен поверх текущего приложения; 11 файлов конфигурации и 4 профиля сохранены. Стабильность того же ядра в debug-сборке подтверждена владельцем.
+Проверки: Naive/TLS/1MiB на amd64 и ARM64/QEMU, DNS/route/Call/gRPC, Vision и WireGuard tests, Android unit tests и signed release build.
+Происхождение: [CORE_UPGRADE_1.0.3.md](https://github.com/Shtorm-glitch/Keny/blob/v1.0.3/CORE_UPGRADE_1.0.3.md).
 
-Файлы: Android ARM64 (`keny.android-arm64-v8a.apk`), Linux x86-64 (`keny.linux-amd64`), Linux и OpenWrt ARM64 (`keny.linux-arm64`). Все содержат ядро с исправлением DNS/TUN. ARM64-файл — самостоятельный статический бинарник для ARM64, не пакет ipk/apk. При обновлении сохраняйте текущие конфиги. Исправление устраняет общую блокировку TUN, но не гарантирует отсутствие обрывов внешних сервисов.
+Проверяйте SHA256SUMS. Конфиги, пароли и комнаты не входят в релиз; маршрутизация автоматически не меняется.

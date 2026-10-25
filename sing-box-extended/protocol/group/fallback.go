@@ -2,6 +2,7 @@ package group
 
 import (
 	"context"
+	"io"
 	"net"
 	"sync"
 	"time"
@@ -59,7 +60,10 @@ func NewFallback(ctx context.Context, router adapter.Router, logger log.ContextL
 	return outbound, nil
 }
 
-func (s *Fallback) Start() error {
+func (s *Fallback) Start(stage adapter.StartStage, scope *adapter.Scope) error {
+	if stage != adapter.StartStateStart {
+		return nil
+	}
 	for i, tag := range s.tags {
 		outbound, loaded := s.outbound.Outbound(tag)
 		if !loaded {
@@ -79,6 +83,17 @@ func (s *Fallback) Now() string {
 func (s *Fallback) All() []string {
 	return s.tags
 }
+
+// Fallback must retain its dial-and-retry behavior when nested in other groups.
+func (s *Fallback) PreserveGroupDialer() bool { return true }
+
+func (s *Fallback) Selected(network string) adapter.Outbound {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	return s.outbounds[s.lastUsedOutbound]
+}
+
+func (s *Fallback) AttachConnection(closer io.Closer) func() { return func() {} }
 
 func (s *Fallback) DialContext(ctx context.Context, network string, destination M.Socksaddr) (net.Conn, error) {
 	s.mtx.Lock()

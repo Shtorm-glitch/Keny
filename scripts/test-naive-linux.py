@@ -46,7 +46,7 @@ def main():
                 '-subj', '/CN=Keny Test CA', '-keyout', 'ca.key', '-out', 'ca.pem')
         openssl('req', '-newkey', 'rsa:2048', '-nodes', '-subj', '/CN=localhost',
                 '-keyout', 'server.key', '-out', 'server.csr')
-        (root / 'extensions').write_text('subjectAltName=DNS:localhost\nextendedKeyUsage=serverAuth\n')
+        (root / 'extensions').write_text('subjectAltName=DNS:localhost,IP:127.0.0.1\nextendedKeyUsage=serverAuth\n')
         openssl('x509', '-req', '-in', 'server.csr', '-CA', 'ca.pem', '-CAkey', 'ca.key',
                 '-CAcreateserial', '-days', '1', '-extfile', 'extensions', '-out', 'server.pem')
         cert, key, ca = [str(root / p) for p in ['server.pem', 'server.key', 'ca.pem']]
@@ -90,7 +90,7 @@ def main():
                 raise TimeoutError('Keny listener startup timed out')
             connection = http.client.HTTPSConnection('127.0.0.1', 19080, timeout=90,
                                                       context=ssl.create_default_context(cafile=ca))
-            connection.set_tunnel('localhost', 18080)
+            connection.set_tunnel('127.0.0.1', 18080)
             connection.request('GET', '/')
             response = connection.getresponse()
             received = response.read()

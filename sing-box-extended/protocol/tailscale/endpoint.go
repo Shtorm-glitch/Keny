@@ -307,20 +307,8 @@ func (t *Endpoint) start(scope *adapter.Scope) error {
 			netmon.RegisterInterfaceGetter(nil)
 			return nil
 		})
-		netmon.SetDefaultRouteFunc(func() (netmon.DefaultRouteDetails, error) {
-			defaultInterface := t.network.InterfaceMonitor().DefaultInterface()
-			if defaultInterface == nil {
-				return netmon.DefaultRouteDetails{}, nil
-			}
-			return netmon.DefaultRouteDetails{
-				InterfaceName:  defaultInterface.Name,
-				InterfaceIndex: defaultInterface.Index,
-			}, nil
-		})
-		scope.Add(func() error {
-			netmon.SetDefaultRouteFunc(nil)
-			return nil
-		})
+		// Extended's pinned Tailscale netmon does not expose SetDefaultRouteFunc.
+		// Keep its existing interface discovery rather than replacing the fork.
 	}
 	if t.systemInterface {
 		mtu := t.systemInterfaceMTU

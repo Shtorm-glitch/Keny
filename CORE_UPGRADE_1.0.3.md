@@ -50,3 +50,11 @@ Compatibility review:
 Validation: native amd64 and ARM64/QEMU Naive/TLS/1MiB, targeted DNS/route/Call/gRPC,
 Vision close and WireGuard tests, Android unit tests and signed release build.
 Live Call service availability is separate from these regression checks.
+
+The Android wrapper no longer overrides the removed libbox useProcFS API;
+connection-owner fallback is handled inside the new libbox implementation.
+
+Explicit exception: the optional Android Tailscale default-route hook added in
+upstream 1.14.4 requires a netmon API absent from the pinned Extended Tailscale
+fork. Its existing interface discovery is retained. No user deployment here
+uses Tailscale; replacing the entire fork would risk its unrelated extensions.

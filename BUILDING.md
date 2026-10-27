@@ -1,6 +1,6 @@
-# Building Keny 1.0.3
+# Building Keny 1.0.4
 
-Use the source snapshot tagged `v1.0.3`, Go 1.26.10, Android SDK/NDK and Android Studio JBR (the Android project requires Java 17 or newer). All dependency versions are pinned by the supplied Go and Gradle files. Android's Gradle wrapper is included. Configure ANDROID_HOME/ANDROID_SDK_ROOT for your SDK and JAVA_HOME for JBR. On Windows invoke `gradlew.bat`.
+Use the source snapshot tagged `v1.0.4`, Go 1.26.10, Android SDK/NDK and Android Studio JBR (the Android project requires Java 17 or newer). All dependency versions are pinned by the supplied Go and Gradle files. Android's Gradle wrapper is included. Configure ANDROID_HOME/ANDROID_SDK_ROOT for your SDK and JAVA_HOME for JBR. On Windows invoke `gradlew.bat`.
 
 ## Linux x86-64 and Linux/OpenWrt ARM64 with Naive
 
@@ -52,6 +52,8 @@ Then run from `sing-box-for-android`, with JAVA_HOME explicitly pointing to Andr
 ./gradlew :app:testOtherDebugUnitTest :app:assembleOtherRelease
 ```
 
-Version properties are set to code 4 / `1.0.3`; application ID is `keny.sfa`. Release ARM64 output is `keny.android-arm64-v8a.apk`. If release signing properties are absent, the project falls back to the local Android debug keystore. Your own key will produce a different certificate and cannot update the published package in place. The published signing key is not included. See app/build.gradle.kts for supported release signing properties.
+Version properties are set to code 5 / `1.0.4`; application ID is `keny.sfa`. Release ARM64 output is `keny.android-arm64-v8a.apk`. If release signing properties are absent, the project falls back to the local Android debug keystore. Your own key will produce a different certificate and cannot update the published package in place. The published signing key is not included. See app/build.gradle.kts for supported release signing properties.
 
 Verify APK certificate and manifest with Android SDK apksigner/aapt. Build success does not establish live Telemost or WB Stream compatibility; those require your own authorized configuration and separate end-to-end checks.
+
+Release 1.0.4 changes Android UI only. The core and AAR are unchanged from 1.0.3; Linux/OpenWrt assets were not republished. Android versionCode is 5.

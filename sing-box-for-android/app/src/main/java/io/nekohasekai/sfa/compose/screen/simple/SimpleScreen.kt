@@ -31,6 +31,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -40,6 +41,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.nekohasekai.sfa.BuildConfig
+import io.nekohasekai.sfa.compose.component.UptimeText
 import io.nekohasekai.sfa.R
 import io.nekohasekai.sfa.compose.screen.dashboard.DashboardViewModel
 import io.nekohasekai.sfa.constant.Status
@@ -149,6 +151,16 @@ fun SimpleScreen(
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             Spacer(Modifier.height(12.dp))
+            Box(
+                modifier = Modifier.fillMaxWidth().height(
+                    with(LocalDensity.current) { MaterialTheme.typography.labelLarge.lineHeight.toDp() },
+                ),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (serviceStatus == Status.Started && state.serviceStartTime != null) {
+                    UptimeText(startTime = state.serviceStartTime!!)
+                }
+            }
             Surface(shape = RoundedCornerShape(22.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
                 Column(Modifier.padding(horizontal = 26.dp, vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("Состояние", style = MaterialTheme.typography.labelMedium)

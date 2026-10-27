@@ -31,6 +31,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.UnfoldLess
 import androidx.compose.material.icons.filled.UnfoldMore
@@ -45,6 +47,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -322,6 +325,7 @@ class MainActivity :
         val currentRoute = currentDestination?.route
         val scope = rememberCoroutineScope()
         var showInterfaceSettings by remember { mutableStateOf(false) }
+        var resetProDestination by remember { mutableStateOf(false) }
         val importHandler = remember { ProfileImportHandler(this@MainActivity) }
 
         val windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass
@@ -765,8 +769,37 @@ class MainActivity :
             }
         }
 
+        LaunchedEffect(simpleMode, currentDestination, resetProDestination) {
+            // NavHost is only composed in Pro. Wait for its graph before navigating.
+            if (!simpleMode && resetProDestination && currentDestination != null) {
+                navController.navigate(Screen.Dashboard.route) {
+                    popUpTo(navController.graph.findStartDestination().id)
+                    launchSingleTop = true
+                }
+                resetProDestination = false
+            }
+        }
+
         val topBarContent: @Composable () -> Unit = {
-            topBarOverride?.invoke()
+            // Reserve the complete dashboard bar on the first frame, before
+            // OverrideTopBar's DisposableEffect registers the screen's bar.
+            if (topBarOverride != null) {
+                topBarOverride.invoke()
+            } else {
+                TopAppBar(
+                    title = { Text(stringResource(R.string.title_dashboard)) },
+                    navigationIcon = {
+                        IconButton(onClick = { showInterfaceSettings = true }) {
+                            Icon(Icons.Default.Settings, contentDescription = "Режим интерфейса")
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { dashboardViewModel.toggleCardSettingsDialog() }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.title_others))
+                        }
+                    },
+                )
+            }
         }
 
         val scaffoldContent: @Composable (PaddingValues) -> Unit = { paddingValues ->
@@ -1035,6 +1068,7 @@ class MainActivity :
                 simple = simpleMode,
                 onModeChange = {
                     Settings.simpleMode = it
+                    resetProDestination = !it
                     simpleMode = it
                     if (it && UpdateState.checkResult.value == UpdateState.CheckResult.Unknown) {
                         scope.launch { UpdateState.checkNow() }
@@ -1042,10 +1076,6 @@ class MainActivity :
                     showGroupsSheet = false
                     showConnectionsSheet = false
                     showInterfaceSettings = false
-                    navController.navigate(Screen.Dashboard.route) {
-                        popUpTo(navController.graph.findStartDestination().id)
-                        launchSingleTop = true
-                    }
                 },
                 onDownload = {
                     updateInfo?.let { info ->

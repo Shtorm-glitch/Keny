@@ -23,6 +23,7 @@ def main():
     command = shlex.split(os.environ.get('KENY_TEST_RUNNER', '')) + [str(Path(sys.argv[1]).resolve())]
     version = subprocess.check_output(command + ['version'], text=True)
     assert 'with_naive_outbound' in version and 'with_musl' in version, version
+    assert 'with_admin_panel' in version and 'with_manager' in version, version
     print(version)
     payload = bytes(range(256)) * 4096
 

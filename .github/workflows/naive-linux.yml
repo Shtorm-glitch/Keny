@@ -1,4 +1,4 @@
-name: Build Linux with Naive
+name: Build Linux with Naive and Admin Panel
 on:
   workflow_dispatch:
 permissions:
@@ -17,6 +17,12 @@ jobs:
         with:
           go-version: '1.26.10'
           cache-dependency-path: sing-box-extended/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build embedded admin panel
+        working-directory: sing-box-extended
+        run: make build_admin_panel
       - name: Install execution tools
         run: sudo apt-get update && sudo apt-get install -y qemu-user
       - name: Prepare pinned Cronet toolchain
@@ -43,6 +49,7 @@ jobs:
           if readelf -d "$binary" | grep -q NEEDED; then echo 'Unexpected shared-library dependency'; exit 1; fi
           if [[ '${{ matrix.arch }}' == arm64 ]]; then export KENY_TEST_RUNNER=qemu-aarch64; fi
           python3 scripts/test-naive-linux.py "$binary"
+          python3 scripts/test-admin-linux.py "$binary"
       - name: Call regression tests
         if: matrix.arch == 'amd64'
         shell: bash
@@ -50,7 +57,7 @@ jobs:
           set -euo pipefail
           source "$RUNNER_TEMP/cronet-env.sh"
           cd sing-box-extended
-          CGO_ENABLED=1 go test -mod=readonly -ldflags '-linkmode external -extldflags "-static"' -tags with_call,with_quic,with_gvisor,with_utls,with_clash_api,with_wireguard,with_naive_outbound,with_musl ./common/interrupt ./dns/... ./protocol/call ./protocol/group ./route/... ./transport/call/... ./transport/v2raygrpclite github.com/sagernet/sing-vmess/vless github.com/sagernet/wireguard-go/device
+          CGO_ENABLED=1 go test -mod=readonly -ldflags '-linkmode external -extldflags "-static"' -tags with_call,with_quic,with_gvisor,with_utls,with_clash_api,with_wireguard,with_naive_outbound,with_musl,with_admin_panel,with_manager ./service/admin_panel ./service/manager/... ./service/manager_api/... ./service/node_manager_api/... ./common/interrupt ./dns/... ./protocol/call ./protocol/group ./route/... ./transport/call/... ./transport/v2raygrpclite github.com/sagernet/sing-vmess/vless github.com/sagernet/wireguard-go/device
       - uses: actions/upload-artifact@v4
         with:
           name: keny-naive-linux-${{ matrix.arch }}

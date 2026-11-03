@@ -32,6 +32,9 @@ jobs:
           revision=$(sed -n 's/.*github.com\/sagernet\/cronet-go v[^ ]*-\([0-9a-f]*\)$/\1/p' sing-box-extended/go.mod)
           test -n "$revision"
           git clone --no-checkout https://github.com/sagernet/cronet-go.git "$RUNNER_TEMP/cronet-go"
+          # The pinned commit remains accessible but is no longer on a cloned ref.
+          test "$revision" = 0d28acc44093
+          git -C "$RUNNER_TEMP/cronet-go" fetch origin 0d28acc44093df24b2526dea3d6ffefd6b0a54f0
           git -C "$RUNNER_TEMP/cronet-go" checkout "$revision"
           git -C "$RUNNER_TEMP/cronet-go" submodule update --init --depth 1 naiveproxy
           cd "$RUNNER_TEMP/cronet-go"

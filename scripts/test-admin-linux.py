@@ -2,6 +2,7 @@
 import json
 import os
 from pathlib import Path
+import re
 import shlex
 import socket
 import subprocess
@@ -46,7 +47,11 @@ with tempfile.TemporaryDirectory(prefix='keny-admin-test-') as directory:
                     with opener.open(f'http://127.0.0.1:{port}/', timeout=2) as response:
                         html = response.read().decode()
                         assert response.status == 200 and '<html' in html.lower()
-                        assert '/assets/' in html, 'SPA assets missing'
+                        assets = re.findall(r'(?:src|href)="(/assets/[^\"]+\.(?:js|css))"', html)
+                        assert assets, 'SPA assets missing'
+                    for asset in assets:
+                        with opener.open(f'http://127.0.0.1:{port}{asset}', timeout=5) as response:
+                            assert response.status == 200 and response.read(), asset
                     assert (root / 'manager.db').exists(), 'Manager database missing'
                     print('Admin Panel HTML/assets and Manager SQLite startup: PASS')
                     break
